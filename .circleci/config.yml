@@ -1,78 +1,30 @@
-version: 2
+# Use the latest 2.1 version of CircleCI pipeline process engine.
+# See: https://circleci.com/docs/2.0/configuration-reference
+version: 2.1
+
+# Orbs are reusable packages of CircleCI configuration that you may share across projects, enabling you to create encapsulated, parameterized commands, jobs, and executors that can be used across multiple projects.
+# See: https://circleci.com/docs/2.0/orb-intro/
+orbs:
+  ruby: circleci/ruby@1.4.0
+
+# Define a job to be invoked later in a workflow.
+# See: https://circleci.com/docs/2.0/configuration-reference/#jobs
 jobs:
-  test:
-    docker:
-      - image: circleci/node:10
-
-    working_directory: /tmp/decentraland-dapps
-
-    steps:
-      - checkout
-      - restore_cache:
-          keys:
-            - dependencies-{{ checksum "package-lock.json" }}
-      - run:
-          name: Install node dependencies
-          command: npm ci
-      - save_cache:
-          paths:
-            - node_modules
-          key: dependencies-{{ checksum "package-lock.json" }}
-
   build:
     docker:
-      - image: circleci/node:10
-
-    working_directory: /tmp/decentraland-dapps
-
+      - image: cimg/ruby:3.1.0
+    executor: ruby/default
     steps:
       - checkout
-      - restore_cache:
-          keys:
-            - dependencies-{{ checksum "package-lock.json" }}
       - run:
-          name: Install node dependencies
-          command: npm install
-      - run:
-          name: Build library
-          command: npm run build
-      - save_cache:
-          paths:
-            - dist
-          key: dist-{{ .Branch }}-{{ .Revision }}
+          name: Which bundler?
+          command: bundle -v
+      - ruby/bundle-install
 
-  release:
-    docker:
-      - image: circleci/node:10
-
-    working_directory: /tmp/decentraland-dapps
-
-    steps:
-      - checkout
-      - restore_cache:
-          keys:
-            - dist-{{ .Branch }}-{{ .Revision }}
-      - restore_cache:
-          keys:
-            - dependencies-{{ checksum "package-lock.json" }}
-      - run:
-          name: Install node dependencies
-          command: npm install
-      - run:
-          name: Semantic release
-          command: npm run semantic-release
-
+# Invoke jobs via workflows
+# See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
-  version: 2
-  test-build-release:
+  sample: # This is the name of the workflow, feel free to change it to better match your workflow.
+    # Inside the workflow, you define the jobs you want to run.
     jobs:
-      - test
-      - build:
-          requires:
-            - test
-      - release:
-          requires:
-            - build
-          filters:
-            branches:
-              only: master
+      - build
